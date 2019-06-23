@@ -23,22 +23,11 @@ int main()
 		}
 		bool up = 0, down = 0, left = 0, right = 0;
 		float rotation = car.getRotation();
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
-		{
-			left = 1;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
-		{
-			right = 1;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
-		{
-			up = 1;
-		}
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
-		{
-			down = 1;
-		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))left = 1;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) right = 1;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) up = 1;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) down = 1;
+
 		//movement
 		if (up && speed < maxSpeed)
 		{
