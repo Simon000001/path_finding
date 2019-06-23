@@ -2,11 +2,11 @@
 #include <cmath>
 int main()
 {
-	float x = 0, y = 0;
+	float x = 350, y = 350;
 	float speed=0, angle=0;
 	float maxSpeed = 4.0;
-	float acc = 0.02f, deacc = 0.3f;
-	float turnSpeed = 0.03f;
+	float acc = 0.3f, deacc = 0.3f;
+	float turnSpeed = 0.04f;
 	sf::RenderWindow window(sf::VideoMode(1000, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
 	sf::RectangleShape car(sf::Vector2f(35.0f, 70.0f));
 	while (window.isOpen())
