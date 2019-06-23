@@ -2,11 +2,13 @@
 #include <cmath>
 int main()
 {
+	float x = 0, y = 0;
+	float speed=0, angle=0;
+	float maxSpeed = 4.0;
+	float acc = 0.02f, deacc = 0.3f;
+	float turnSpeed = 0.03f;
 	sf::RenderWindow window(sf::VideoMode(1000, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
 	sf::RectangleShape car(sf::Vector2f(35.0f, 70.0f));
-	car.setFillColor(sf::Color::Green);
-	car.setRotation(90.f);
-	car.setPosition(250.f, 250.f);
 	while (window.isOpen())
 	{
 		sf::Event evt;
@@ -15,29 +17,57 @@ int main()
 			switch (evt.type)
 			{
 			case sf::Event::Closed:
-					window.close();
-					break;
-			//case sf::Event::
+				window.close();
+				break;
 			}
 		}
+		bool up = 0, down = 0, left = 0, right = 0;
 		float rotation = car.getRotation();
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
 		{
-			car.rotate(-1.f);
+			left = 1;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
 		{
-			car.rotate(1.f);
+			right = 1;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
 		{
-			car.move(0.0f,-1.0f);
+			up = 1;
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
 		{
-			car.move(0.0f,1.0f);
+			down = 1;
 		}
+		//movement
+		if (up && speed < maxSpeed)
+		{
+			if (speed < 0) speed += deacc;
+			else speed += acc;
+		}
+		if (down && speed >-maxSpeed)
+		{
+			if (speed > 0) speed -= deacc;
+			else speed -= acc;
+		}
+		if (!up && !down)
+		{
+			if (speed - deacc > 0) speed -= deacc;
+			else if (speed + deacc < 0) speed += deacc;
+			else speed = 0;
+		}
+		if (right && speed != 0) angle += turnSpeed * speed / maxSpeed;
+		if (left && speed != 0) angle -= turnSpeed * speed / maxSpeed;
+
+		x += sin(angle) * speed;
+		y -= cos(angle) * speed;
+
+		
+		//draw car
 	window.clear();
+	car.setPosition(x, y);
+	car.setRotation(angle * 180 / 3.141592);
+	car.setFillColor(sf::Color::Green);
 	window.draw(car);
 	window.display();
 	}
