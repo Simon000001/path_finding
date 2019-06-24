@@ -9,6 +9,7 @@ int main()
 	float turnSpeed = 0.04f;
 	sf::RenderWindow window(sf::VideoMode(1000, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
 	sf::RectangleShape car(sf::Vector2f(35.0f, 70.0f));
+	car.setOrigin(17.5f, 35.0f);
 	while (window.isOpen())
 	{
 		sf::Event evt;
@@ -50,8 +51,13 @@ int main()
 
 		x += sin(angle) * speed;
 		y -= cos(angle) * speed;
-
-		
+		//mouse input
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+		{
+			sf::Vector2i mousepos = sf:: Mouse::getPosition(window);
+			x = (float)mousepos.x;
+			y = (float)mousepos.y;
+		}
 		//draw car
 	window.clear();
 	car.setPosition(x, y);
