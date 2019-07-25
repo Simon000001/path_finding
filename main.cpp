@@ -15,6 +15,7 @@ int main()
 	int hexgrid[maxrows][maxcolms];
 	int state = 2;
 	int oi, oj;
+	int cx, cy;
 	float ox = 0, oy = 0;
 	static float sx, sy;
 	float x = -100, y = -100;
@@ -109,26 +110,6 @@ int main()
 		x += sin(angle) * speed;
 		y -= cos(angle) * speed;
 
-		//mouse input
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
-		{
-			sf::Vector2i mousepos = sf:: Mouse::getPosition(window);
-			x = (float)mousepos.x;
-			y = (float)mousepos.y;
-			angle = 0.0;
-		}
-		
-		//check collision
-		if (car.getGlobalBounds().intersects(tile.getGlobalBounds()))
-		{
-		
-			x = sx;
-			y = sy;
-		}
-		else 
-			std::cout << "no collision" << std::endl;
-		    std::cout << sx <<"  " <<sy<< std::endl;
-
 		
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
@@ -190,6 +171,18 @@ int main()
 			hexgrid[oi][oj] = 3;
 		}
 			
+		//check collision
+		cx = (int)x / 104;
+		cy = (int)y / 84;
+		if (hexgrid[cx][cy] == 0)
+		{
+			x = sx;
+			y = sy;
+		}
+		else 
+			std::cout << "no collision" << std::endl;
+		    std::cout << sx <<"  " <<sy<< std::endl;
+
 
 		//render
 	window.clear(sf::Color(150,150,150));
