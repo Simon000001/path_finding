@@ -1,18 +1,24 @@
 #include <SFML\Graphics.hpp>
 #include <iostream>
 #include <cmath>
-#define maxrows 20
-#define maxcolms 13
+#include "astar.h"
+#define maxrows 10
+#define maxcolms 14
+int hexgrid[maxcolms][maxrows];
+	bool jump = 1;
+
 int main()
 {
 	enum {
 		LEFT = 0, RIGHT, UP_DOWN
 	};
 	enum {
-		obstacle = 0, start, stop
+		obstacle = 0, start, stop,normal,path
 	};
-	int grid[maxrows][maxcolms];
-	int hexgrid[maxrows][maxcolms];
+	int openedlist[maxrows][maxcolms];
+	int closedlist[maxrows][maxcolms];
+	int count = 0;
+	int temp = 0;
 	int state = 2;
 	int oi, oj;
 	int cx, cy;
@@ -26,6 +32,7 @@ int main()
 	int  tiletexturesizex = 150;
 	int tiletexturesizey = 172;
 
+
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 8;
 	sf::RenderWindow window(sf::VideoMode(1400, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
@@ -37,14 +44,14 @@ int main()
 	sf::Texture tileTexture;
 	carTexture.loadFromFile("texture/car_sprite.png");
 	car.setTexture(&carTexture);
-	tileTexture.loadFromFile("texture/tiles.png");
+	tileTexture.loadFromFile("texture/tiles_1.png");
 	tile.setTexture(&tileTexture);
 	sf::Vector2u texturesize = carTexture.getSize();
 	texturesize.x /= 1;
 	texturesize.y /= 3;
 
-	for (int i = 0; i < maxrows; i++)
-		for (int j = 0; j < maxcolms; j++)
+	for (int i = 0; i < maxcolms; i++)
+		for (int j = 0; j < maxrows; j++)
 		{
 			hexgrid[i][j] = 3;
 		}
@@ -119,7 +126,7 @@ int main()
 			oy = (float)mousepos.y;
 			oi = (int)ox / 104;
 			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 0;
+			hexgrid[oi][oj] = obstacle;
 		}
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::X))
 		{
@@ -128,7 +135,7 @@ int main()
 			oy = (float)mousepos.y;
 			oi = (int)ox / 104;
 			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 3;
+			hexgrid[oi][oj] = normal;
 		}
 		else if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 		{
@@ -141,7 +148,7 @@ int main()
 			sy = oy;
 			oi = (int)ox / 104;
 			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 1;
+			hexgrid[oi][oj] = start;
 		}
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 		{
@@ -150,7 +157,7 @@ int main()
 			oy = (float)mousepos.y;
 			oi = (int)ox / 104;
 			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 3;
+			hexgrid[oi][oj] = normal;
 		}
 		else if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::E))
 		{
@@ -159,7 +166,7 @@ int main()
 			oy = (float)mousepos.y;
 			oi = (int)ox / 104;
 			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 2;
+			hexgrid[oi][oj] = stop;
 		}
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && sf::Keyboard::isKeyPressed(sf::Keyboard::E))
 		{
@@ -168,29 +175,37 @@ int main()
 			oy = (float)mousepos.y;
 			oi = (int)ox / 104;
 			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 3;
+			hexgrid[oi][oj] = normal;
 		}
 			
 		//check collision
 		cx = (int)x / 104;
 		cy = (int)y / 84;
-		if (hexgrid[cx][cy] == 0)
+		if (hexgrid[cx][cy] == obstacle)
 		{
 			x = sx;
 			y = sy;
 		}
-		else 
-			std::cout << "no collision" << std::endl;
-		    std::cout << sx <<"  " <<sy<< std::endl;
-
-
+		//class object defination
+			Node n[maxcolms][maxrows];
+			for (int i = 0; i < maxcolms; i++)
+			{
+				for (int j = 0; j < maxrows; j++)
+				{
+					
+					n[i][j].assignNodestate(hexgrid[i][j], i, j, jump);
+					jump = 0;
+				}
+			    jump = 1;
+			}
+			std::cout << std::endl << std::endl << std::endl << std::endl;
 		//render
 	window.clear(sf::Color(150,150,150));
 	car.setTextureRect(sf::IntRect(texturesize.x *0, texturesize.y * state, texturesize.x, texturesize.y));
 	car.setPosition(x, y);
 	car.setRotation(angle *180 / (float)3.1415);
-		for (int i = 0; i <maxrows; i++)
-			for (int j = 0; j < maxcolms; j++)
+		for (int i = 0; i <maxcolms; i++)
+			for (int j = 0; j < maxrows; j++)
 			{
 				if (j % 2 == 0) {
 					tile.setTextureRect(sf::IntRect(150 * hexgrid[i][j], 172 * 0, 150, 172));
@@ -203,6 +218,7 @@ int main()
 
 				window.draw(tile);
 			}
+		
 	window.draw(car);
 	window.display();
 	}
