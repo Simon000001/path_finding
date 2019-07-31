@@ -407,15 +407,9 @@ int main(int argc, char* argv[])
 					tile.setTextureRect(sf::IntRect(tiletexturesize.x* hexgrid[i][j],  0, tiletexturesize.x, tiletexturesize.y));
 					tile.setPosition(i * tiletexturesize.x, j * tiletexturesize.y);
 					window.draw(tile);
+					if (hexgrid[i][j]!=0)hexgrid[i][j] = 3;
 			}
-		}
-		for (int i = 0; i < maxcolms; i++) {
-			for (int j = 0; j < maxrows; j++)
-			{
-				if (hexgrid[i][j] != 0)
-					hexgrid[i][j] = 3;
-			}
-		}
+		}	
 	window.draw(car);
 	window.display();
 	}
