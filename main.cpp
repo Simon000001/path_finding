@@ -387,7 +387,7 @@ int main(int argc, char* argv[])
 						else if (x == endx && y == endy) hexgrid[x][y] = stop;
 						else hexgrid[x][y] = start;
 					}
-					tile.setTextureRect(sf::IntRect(tiletexturesize.x* hexgrid[x][y], 0, tiletexturesize.x, tiletexturesize.y));
+					tile.setTextureRect(sf::IntRect(tiletexturesize.x * hexgrid[x][y], 0, tiletexturesize.x , tiletexturesize.y));
 					tile.setPosition(x* tiletexturesize.x, y* tiletexturesize.y);
 					window.draw(tile);
 					if (hexgrid[x][y] != 0)hexgrid[x][y] = 3;
@@ -397,7 +397,7 @@ int main(int argc, char* argv[])
 
 		}
 		
-	car.setTextureRect(sf::IntRect(texturesize.x *0, texturesize.y * state, texturesize.x, texturesize.y));
+	car.setTextureRect(sf::IntRect(texturesize.x *0, texturesize.y * state , texturesize.x , texturesize.y ));
 	car.setPosition(x, y);
 	car.setRotation(angle * 180 / (float)3.1415);	
 	window.draw(car);
