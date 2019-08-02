@@ -4,32 +4,33 @@
 #include <queue>
 #include <list>
 #include <algorithm>
+#include <conio.h>
 
-#define maxrows 8
-#define maxcolms 14
-int hexgrid[maxcolms][maxrows];
+int maxrows = 8;
+int maxcolms = 16;
 
 
 class point {
 public:
-	point(int a = 0, int b = 0) { x = a; y = b; }
+	point(int a = 0, int b = 0) { x = a; y = b;}
 	bool operator ==(const point& o) { return o.x == x && o.y == y; }
 	point operator +(const point& o) { return point(o.x + x, o.y + y); }
 	int x, y;
+	
 };
 
 class map {
 public:
 	map() {
-		char t[14][8];
-		for (int i = 0; i < 8; i++)
-			for (int j = 0; j < 14; j++)
+		char t[16][8];
+		for (int i = 0; i < maxcolms ; i++)
+			for (int j = 0; j <maxrows; j++)
 			{
 				t[i][j] = 0;
 			}
 		
-		w = 14;
-		h = 8;
+		w = maxcolms;
+		h = maxrows;
 		for (int r = 0; r < h; r++)
 			for (int s = 0; s < w; s++)
 				m[s][r] = t[r][s];
@@ -41,7 +42,7 @@ public:
 
 	}
 	int operator() (int x, int y) { return m[x][y]; }
-	char m[14][8];
+	char m[16][8];
 	int w, h;
 };
 
@@ -52,6 +53,7 @@ public:
 	bool operator < (const node& o) { return dist + cost < o.dist + o.cost; }
 	point pos, parent;
 	int dist, cost;
+	
 };
 
 class aStar {
@@ -68,7 +70,7 @@ public:
 	int calcDist(point& p) {
 		//  for a better heuristic
 		int x = end.x - p.x, y = end.y - p.y;
-		return(x * x + y * y);
+		return(pow((x * x + y * y),1));
 	}
 
 	bool isValid(point& p) {
@@ -96,7 +98,7 @@ public:
 
 		for (int x = 0; x < 8; x++) {
 			// one can make diagonals have different cost
-			stepCost = x < 4 ? 1.5 : 1;
+			stepCost = x < 4 ? 1.41 : 1;
 			
 				neighbour = n.pos + neighbours[x];
 			
@@ -111,6 +113,7 @@ public:
 					m.pos = neighbour;
 					m.parent = n.pos;
 					open.push_back(m);
+					visited.push_back(m);
 				}
 			}
 		}
@@ -127,6 +130,7 @@ public:
 			open.pop_front();
 			closed.push_back(n);
 			if (fillOpen(n)) return true;
+			
 		}
 		return false;
 	}
@@ -151,39 +155,34 @@ public:
 	point neighbours[8];
 	std::list<node> open;
 	std::list<node> closed;
+	std::list<node> visited;
 };
 
 
 int main(int argc, char* argv[])
 {
 	map m;
-	
+	int hexgrid[16][8];
 	enum {
 		LEFT = 0, RIGHT, UP_DOWN
 	};
 	enum {
-		obstacle = 0, start, stop,normal,path
+		obstacle = 0, start, stop,normal,way
 	};
-	int count = 0;
-	int temp = 0;
-	int state = 2;
+	int state = UP_DOWN;
 	int oi, oj;
 	int cx, cy;
 	int bx, by;
 	float ox = 0, oy = 0;
 	static int sx, sy;//cordinate
 	static int ex, ey;
-	int startnode;
-	int endnode;
 	static int startx=0, starty=0;//rows,colms
-	static int endx=14, endy=8;
+	static int endx=maxcolms-1, endy=maxrows-1;
 	float x = -100, y = -100;
 	float speed=0, angle=0.0;
 	float maxSpeed = 2.0;
 	float acc = 1.2f, deacc = 1.2f;
 	float turnSpeed = 0.03f;
-	int  tiletexturesizex = 150;
-	int tiletexturesizey = 172;
 	bool jump = 1;
 	bool startex = 0;
 	bool endex = 0;
@@ -191,7 +190,7 @@ int main(int argc, char* argv[])
 
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 8;
-	sf::RenderWindow window(sf::VideoMode(1400, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
+	sf::RenderWindow window(sf::VideoMode(1600, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
 	sf::RectangleShape car(sf::Vector2f(76.0f, 110.5f));
 	sf::RectangleShape tile(sf::Vector2f(100.0f, 100.0f));
 	car.setOrigin(43.0f, 69.0f);
@@ -367,53 +366,44 @@ int main(int argc, char* argv[])
 			
 		//a*algorithm
 		
-	
-		
-		
 		point s(startx, starty), e(endx, endy);
 		aStar as;
-		
-		//if (startex==1 && endex==1)
 		if (as.search(s, e, m)) {
 			std::list<point> path;
 			int c = as.path(path);
-			for (int y = 0; y < 8; y++) {
-				for (int x = 0; x < 14; x++) {
-					
+			//render
+
+
+			window.clear(sf::Color(150,150,150));
+
+			for (int y = 0; y < maxrows; y++) {
+				for (int x = 0; x < maxcolms; x++) {
+					if (std::find(as.visited.begin(), as.visited.end(), point(x, y)) != as.visited.end()) {
+						hexgrid[x][y] = way;
+					}
 					if (std::find(path.begin(), path.end(), point(x, y)) != path.end()) {
 						
-						if (x == startx && y == starty) hexgrid[x][y] = 1;
-						else if (x == endx && y == endy) hexgrid[x][y] = 2;
-						else hexgrid[x][y] = 4;
-
-					
+						if (x == startx && y == starty) hexgrid[x][y] = start;
+						else if (x == endx && y == endy) hexgrid[x][y] = stop;
+						else hexgrid[x][y] = start;
 					}
+					tile.setTextureRect(sf::IntRect(tiletexturesize.x* hexgrid[x][y], 0, tiletexturesize.x, tiletexturesize.y));
+					tile.setPosition(x* tiletexturesize.x, y* tiletexturesize.y);
+					window.draw(tile);
+					if (hexgrid[x][y] != 0)hexgrid[x][y] = 3;
 				}
 				
 			}
 
 		}
-	  
-
-		//render
 		
-	window.clear(sf::Color(150,150,150));
 	car.setTextureRect(sf::IntRect(texturesize.x *0, texturesize.y * state, texturesize.x, texturesize.y));
 	car.setPosition(x, y);
-	car.setRotation(angle *180 / (float)3.1415);
-		for (int i = 0; i <maxcolms; i++){
-			for (int j = 0; j < maxrows; j++)
-			{
-					tile.setTextureRect(sf::IntRect(tiletexturesize.x* hexgrid[i][j],  0, tiletexturesize.x, tiletexturesize.y));
-					tile.setPosition(i * tiletexturesize.x, j * tiletexturesize.y);
-					window.draw(tile);
-					if (hexgrid[i][j]!=0)hexgrid[i][j] = 3;
-			}
-		}	
+	car.setRotation(angle * 180 / (float)3.1415);	
 	window.draw(car);
 	window.display();
 	}
-
+	
 	return 0;
 }
 
