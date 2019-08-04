@@ -39,7 +39,13 @@ public:
 		if (c ==1) {
 			m[i][j] = 0;
 		}else m[i][j] = 1;
-
+	}
+	void obstaclereset() {
+			for (int i = 0; i < maxcolms; i++)
+				for (int j = 0; j < maxrows; j++)
+				{
+					m[i][j] = 0;
+				}
 	}
 	int operator() (int x, int y) { return m[x][y]; }
 	char m[16][8];
@@ -59,8 +65,8 @@ public:
 class aStar {
 public:
 	aStar() {
-		neighbours[0] = point(-1, -1); neighbours[1] = point(1, -1);
-		neighbours[2] = point(-1, 1); neighbours[3] = point(1, 1);
+		//neighbours[0] = point(-1, -1); neighbours[1] = point(1, -1);
+		//neighbours[2] = point(-1, 1); neighbours[3] = point(1, 1);
 		neighbours[4] = point(0, -1); neighbours[5] = point(-1, 0);
 		neighbours[6] = point(0, 1); neighbours[7] = point(1, 0);
 	}
@@ -98,7 +104,7 @@ public:
 
 		for (int x = 0; x < 8; x++) {
 			// one can make diagonals have different cost
-			stepCost = x < 4 ? 1.41 : 1;
+			stepCost = x < 4 ? 1.5 : 1;
 			
 				neighbour = n.pos + neighbours[x];
 			
@@ -174,7 +180,7 @@ int main(int argc, char* argv[])
 	int cx, cy;
 	int bx, by;
 	float ox = 0, oy = 0;
-	static int sx, sy;//cordinate
+	static int sx=50, sy=50;//cordinate
 	static int ex, ey;
 	static int startx=0, starty=0;//rows,colms
 	static int endx=maxcolms-1, endy=maxrows-1;
@@ -190,7 +196,7 @@ int main(int argc, char* argv[])
 
 	sf::ContextSettings settings;
 	settings.antialiasingLevel = 8;
-	sf::RenderWindow window(sf::VideoMode(1600, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
+	sf::RenderWindow window(sf::VideoMode(1600, 1000), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
 	sf::RectangleShape car(sf::Vector2f(76.0f, 110.5f));
 	sf::RectangleShape tile(sf::Vector2f(100.0f, 100.0f));
 	car.setOrigin(43.0f, 69.0f);
@@ -207,13 +213,14 @@ int main(int argc, char* argv[])
 	tiletexturesize.x /= 5;
 	texturesize.y /= 3;
 	tiletexturesize.y /= 1;
-
-	for (int i = 0; i < maxcolms; i++)
-		for (int j = 0; j < maxrows; j++)
-		{
-			hexgrid[i][j] = 3;
-		}
-
+	car.setTextureRect(sf::IntRect(texturesize.x * 0, texturesize.y* state, texturesize.x, texturesize.y));
+	sf::Image instruction;
+	instruction.loadFromFile("texture/instruction.png");
+	sf::Texture tinstruction;
+	tinstruction.loadFromImage(instruction);
+	sf::Sprite Sprite;
+	Sprite.setTexture(tinstruction);
+	
 	while (window.isOpen())
 	{
 		sf::Event evt;
@@ -276,6 +283,15 @@ int main(int argc, char* argv[])
 		y -= cos(angle) * speed;
 
 		
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl) && sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+		{
+			m.obstaclereset();
+			for (int i = 0; i < maxcolms; i++)
+				for (int j = 0; j < maxrows; j++)
+				{
+					hexgrid[i][j] = 3;
+				}
+		}
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::X))
 		{
@@ -357,7 +373,7 @@ int main(int argc, char* argv[])
 		//check collision
 		cx = (int)x / tiletexturesize.x;
 		cy = (int)y / tiletexturesize.y;
-		if (hexgrid[cx][cy] == obstacle)
+		if (hexgrid[cx][cy] == obstacle || hexgrid[cx][cy] == stop)
 		{
 			x = sx;
 			y = sy;
@@ -368,40 +384,129 @@ int main(int argc, char* argv[])
 		
 		point s(startx, starty), e(endx, endy);
 		aStar as;
-		if (as.search(s, e, m)) {
+		if (as.search(s, e, m) || as.open.empty()) {
 			std::list<point> path;
 			int c = as.path(path);
+
 			//render
 
+			window.clear(sf::Color(150, 150, 150));
 
-			window.clear(sf::Color(150,150,150));
-
-			for (int y = 0; y < maxrows; y++) {
-				for (int x = 0; x < maxcolms; x++) {
+			for (int j = 0; j < maxrows; j++) {
+				for (int i = 0; i < maxcolms; i++) {
+					if (hexgrid[i][j] != 0)hexgrid[i][j] = 3;
 					if (std::find(as.visited.begin(), as.visited.end(), point(x, y)) != as.visited.end()) {
-						hexgrid[x][y] = way;
+						hexgrid[i][j] = way;
 					}
-					if (std::find(path.begin(), path.end(), point(x, y)) != path.end()) {
-						
-						if (x == startx && y == starty) hexgrid[x][y] = start;
-						else if (x == endx && y == endy) hexgrid[x][y] = stop;
-						else hexgrid[x][y] = start;
+					if (std::find(path.begin(), path.end(), point(i, j)) != path.end()) {
+						if (i == startx && j == starty) hexgrid[i][j] = start;
+						else if (i == endx && j == endy) hexgrid[i][j] = stop;
+						else hexgrid[i][j] = start;
 					}
-					tile.setTextureRect(sf::IntRect(tiletexturesize.x * hexgrid[x][y], 0, tiletexturesize.x , tiletexturesize.y));
-					tile.setPosition(x* tiletexturesize.x, y* tiletexturesize.y);
-					window.draw(tile);
-					if (hexgrid[x][y] != 0)hexgrid[x][y] = 3;
-				}
-				
-			}
 
+					tile.setTextureRect(sf::IntRect(tiletexturesize.x * hexgrid[i][j], 0, tiletexturesize.x, tiletexturesize.y));
+					tile.setPosition(i * tiletexturesize.x, j * tiletexturesize.y);
+					window.draw(tile);
+					Sprite.setPosition(0, 800);
+					window.draw(Sprite);
+					
+				}
+
+			}
+			/*for (std::list<point>::iterator i = path.begin(); i != path.end(); i++) {
+				std::cout << "(" << (*i).x << ", " << (*i).y << ") ";
+			}std::cout << std::endl<<std::endl<<std::endl;*/
+
+
+
+			std::cout << std::endl << std::endl;
+
+
+			std::cout << angle * 180 / (float)3.1415 << ",";
+			bool loop = 0;
+			car.setPosition(x, y);
+			car.setRotation(angle*180/(float)3.1415);
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+				loop = 1;
+			}
+					while (loop == 1) {
+						for (std::list<point>::iterator i = path.begin(); i != path.end(); i++)
+						{
+
+							int pi = (*i).x;
+							int pj = (*i).y;
+
+
+							sf::VertexArray line(sf::LineStrip, 2);
+							line[0].position = sf::Vector2f(car.getPosition());
+							line[1].position = sf::Vector2f(sf::Vector2f(pi * 100.0f, pj * 100.0f) + sf::Vector2f(50.0f, 50.0f));
+							
+
+
+							sf::Vector2f carpos = car.getPosition();
+							int px, px1, py, py1;
+							//float dist, slope;
+							float tangle;
+							px = (int)carpos.x;
+							py = (int)carpos.y;
+							px1 = pi * 100 + 50;
+							py1 = pj * 100 + 50;
+
+							float dist = (float)pow((pow((line[1].position.x - line[0].position.x), 2) + pow((line[1].position.y - line[0].position.y), 2)), 0.5);
+							float slope = (line[1].position.x - line[0].position.x) / (line[1].position.y - line[0].position.y);
+							
+							float lineangle = atanf(slope) * 180.0 / 3.1415;
+							float dangle = 180 - lineangle;
+							float rangle =  3.141592 / 2;
+							if ((px1 - px) > 0 && (py1 - py) >0) rangle = dangle * 3.141592 / (float)180;
+							else if ((px1 - px) < 0 && (py1 - py) > 0) rangle = dangle * 3.141592 / (float)180;
+							else if ((px1 - px) < 0 && (py1 - py) < 0) rangle = (lineangle) * 3.141592 / (float)180;
+							else if ((px1 - px) > 0 && (py1 - py) < 0) rangle = (lineangle) * 3.141592 / (float)180;
+							//angle = actualangle;
+							while (dist > 10) {
+								sf::Vector2f carpos = car.getPosition();
+								px = (int)carpos.x;
+								py = (int)carpos.y;
+								px1 = pi * 100 + 50;
+								py1 = pj * 100 + 50;
+								x += sin(rangle) * 0.5;
+								y -= cos(rangle) * 0.5;
+								car.setRotation(dangle);
+								std::cout << dangle << ',';
+								car.setPosition(x, y);
+								for (int j = 0; j < maxrows; j++) {
+									for (int i = 0; i < maxcolms; i++) {
+										tile.setTextureRect(sf::IntRect(tiletexturesize.x* hexgrid[i][j], 0, tiletexturesize.x, tiletexturesize.y));
+										tile.setPosition(i* tiletexturesize.x, j* tiletexturesize.y);
+										window.draw(tile);
+									}
+								}
+								window.draw(line);
+								line.clear();
+								window.draw(car);
+								window.draw(Sprite);
+								window.display();
+								//dist = dist - 0.1;
+								dist = pow((((px1 - px) * (px1 - px)) + ((py1 - py) * (py1 - py))), 0.5);
+								if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) break;
+
+							}
+							/*while (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+								if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) break;
+							}*/
+
+						}
+							
+						loop = 0;
+						if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) break;
+					}
 		}
+
+					
+				
 		
-	car.setTextureRect(sf::IntRect(texturesize.x *0, texturesize.y * state , texturesize.x , texturesize.y ));
-	car.setPosition(x, y);
-	car.setRotation(angle * 180 / (float)3.1415);	
-	window.draw(car);
-	window.display();
+		window.draw(car);
+		window.display();
 	}
 	
 	return 0;
