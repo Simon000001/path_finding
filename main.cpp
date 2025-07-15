@@ -1,329 +1,234 @@
-#include <SFML\Graphics.hpp>
+#include <SFML/Graphics.hpp>
 #include <iostream>
+#include <vector>
 #include <cmath>
-<<<<<<< HEAD
-#include <iostream>
-int i, j;
-=======
-#define maxrows 20
-#define maxcolms 13
->>>>>>> 2b2c0b42e0dc66fb83924f4d229d4e3de2e4eeae
-int main()
-{
-	enum {
-		LEFT = 0, RIGHT, UP_DOWN
-	};
-<<<<<<< HEAD
-	int state;
-	float x = 350, y = 350;
-	float speed = 0, angle = 0;
-	float maxSpeed = 2.0;
-	float acc = 0.3f, deacc = 0.3f;
-	float turnSpeed = 0.07f;
-	sf::RenderWindow window(sf::VideoMode(1800, 1000), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
 
+// --- Enums ---
+enum Orientation {
+    LEFT = 0,
+    RIGHT,
+    STRAIGHT
+};
 
-	sf::RectangleShape car(sf::Vector2f(86.0f, 137.5f));
-	sf::RectangleShape rectangle(sf::Vector2f(250.0f, 100.0f));
-	rectangle.setPosition(0.0f, 0.0f);
-	rectangle.setFillColor(sf::Color::Black);
+enum TileType {
+    OBSTACLE = 0,
+    START,
+    STOP,
+    EMPTY
+};
 
-	sf::RectangleShape rectangle1(sf::Vector2f(250.0f, 100.0f));
-	rectangle1.setPosition(0.0f, 250.0f);
-	rectangle1.setFillColor(sf::Color::Black);
+// --- Check point inside hexagon ---
+bool pointInHexagon(sf::Vector2f point, sf::Vector2f hexCenter, float radius) {
+    const int numSides = 6;
+    sf::Vector2f hexPoints[numSides];
 
-	sf::RectangleShape rectangle2(sf::Vector2f(250.0f, 100.0f));
-	rectangle2.setPosition(0.0f, 650.0f);
-	rectangle2.setFillColor(sf::Color::Black);
+    for (int i = 0; i < numSides; ++i) {
+        float angle_deg = 60 * i - 30;
+        float angle_rad = M_PI / 180.0f * angle_deg;
+        hexPoints[i] = hexCenter + sf::Vector2f(radius * cos(angle_rad), radius * sin(angle_rad));
+    }
 
-	sf::RectangleShape rectangle3(sf::Vector2f(250.0f, 100.0f));
-	rectangle3.setPosition(0.0f, 900.0f);
-	rectangle3.setFillColor(sf::Color::Black);
+    int crossings = 0;
+    for (int i = 0; i < numSides; ++i) {
+        sf::Vector2f p1 = hexPoints[i];
+        sf::Vector2f p2 = hexPoints[(i + 1) % numSides];
+        if (((p1.y > point.y) != (p2.y > point.y)) &&
+            (point.x < (p2.x - p1.x) * (point.y - p1.y) / (p2.y - p1.y) + p1.x)) {
+            crossings++;
+        }
+    }
+    return (crossings % 2 == 1);
+}
 
-	sf::RectangleShape rectangle4(sf::Vector2f(250.0f, 100.0f));
-	rectangle4.setPosition(1550.0f, 0.0f);
-	rectangle4.setFillColor(sf::Color::Black);
+int main() {
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 8;
+    sf::RenderWindow window(sf::VideoMode(1400, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar, settings);
+    window.setFramerateLimit(60);
 
-	sf::RectangleShape rectangle5(sf::Vector2f(250.0f, 100.0f));
-	rectangle5.setPosition(1550.0f, 250.0f);
-	rectangle5.setFillColor(sf::Color::Black);
+    constexpr int TILE_WIDTH = 104;
+    constexpr int TILE_HEIGHT = 84;
+    constexpr float PI = 3.14159265f;
 
-	sf::RectangleShape rectangle6(sf::Vector2f(250.0f, 100.0f));
-	rectangle6.setPosition(1550.0f, 650.0f);
-	rectangle6.setFillColor(sf::Color::Black);
+    // --- Calculate rows and cols based on screen size ---
+    int max_cols = window.getSize().x / TILE_WIDTH;
+    int max_rows = window.getSize().y / (TILE_HEIGHT * 0.75f);
 
-	sf::RectangleShape rectangle7(sf::Vector2f(250.0f, 100.0f));
-	rectangle7.setPosition(1550.0f, 900.0f);
-	rectangle7.setFillColor(sf::Color::Black);
+    // --- Grid ---
+    std::vector<std::vector<int>> hexgrid(max_rows, std::vector<int>(max_cols, TileType::EMPTY));
 
+    // --- Set START and STOP tiles within visible range ---
+    if (max_rows > 0 && max_cols > 0) {
+        hexgrid[0][0] = TileType::START;
+        if (max_rows > 1 && max_cols > 1) {
+            hexgrid[max_rows - 1][max_cols - 1] = TileType::STOP;
+        } else {
+            // If grid is too small, place STOP at a different position
+            hexgrid[std::max(0, max_rows - 1)][std::max(0, max_cols - 1)] = TileType::STOP;
+        }
+    }
 
+    // --- Load Textures ---
+    sf::Texture carTexture, tileTexture;
+    if (!carTexture.loadFromFile("texture/car_sprite.png")) {
+        std::cerr << "Failed to load car_sprite.png\n";
+        return 1;
+    }
+    if (!tileTexture.loadFromFile("texture/tiles.png")) {
+        std::cerr << "Failed to load tiles.png\n";
+        return 1;
+    }
 
-	car.setOrigin(17.5f, 35.0f);
-=======
-	enum {
-		obstacle = 0, start, stop
-	};
-	int grid[maxrows][maxcolms];
-	int hexgrid[maxrows][maxcolms];
-	int state = 2;
-	int oi, oj;
-	int cx, cy;
-	float ox = 0, oy = 0;
-	static float sx, sy;
-	float x = -100, y = -100;
-	float speed=0, angle=0.0;
-	float maxSpeed = 2.0;
-	float acc = 0.05f, deacc = 0.08f;
-	float turnSpeed = 0.02f;
-	int  tiletexturesizex = 150;
-	int tiletexturesizey = 172;
+    // --- Car ---
+    sf::RectangleShape car(sf::Vector2f(76.0f, 110.5f));
+    car.setOrigin(38.0f, 55.25f);
+    car.setTexture(&carTexture);
+    sf::Vector2u carTextureSize = carTexture.getSize();
+    carTextureSize.y /= 4;
 
-	sf::ContextSettings settings;
-	settings.antialiasingLevel = 8;
-	sf::RenderWindow window(sf::VideoMode(1400, 800), "Path Finder", sf::Style::Close | sf::Style::Titlebar);
-	sf::RectangleShape car(sf::Vector2f(76.0f, 110.5f));
-	sf::RectangleShape tile(sf::Vector2f(110.0f, 110.0f));
-	car.setOrigin(43.0f, 69.0f);
-	tile.setOrigin(35.0f, 35.0f);
->>>>>>> 2b2c0b42e0dc66fb83924f4d229d4e3de2e4eeae
-	sf::Texture carTexture;
-	sf::Texture tileTexture;
-	carTexture.loadFromFile("texture/car_sprite.png");
-	car.setTexture(&carTexture);
-<<<<<<< HEAD
-	carTexture.setSmooth(false);
-=======
-	tileTexture.loadFromFile("texture/tiles.png");
-	tile.setTexture(&tileTexture);
->>>>>>> 2b2c0b42e0dc66fb83924f4d229d4e3de2e4eeae
-	sf::Vector2u texturesize = carTexture.getSize();
-	texturesize.x /= 1;
-	texturesize.y /= 3;
+    // --- Tile sprite ---
+    sf::RectangleShape tile(sf::Vector2f(110.0f, 110.0f));
+    tile.setOrigin(55.0f, 55.0f); // Center the origin properly
+    tile.setTexture(&tileTexture);
 
-	for (int i = 0; i < maxrows; i++)
-		for (int j = 0; j < maxcolms; j++)
-		{
-			hexgrid[i][j] = 3;
-		}
+    // --- Car State ---
+    float x = TILE_WIDTH / 2.0f;
+    float y = TILE_HEIGHT / 2.0f;
+    float sx = x, sy = y;
+    float speed = 0, angle = 0.0f;
+    const float maxSpeed = 2.0f, acc = 0.05f, deacc = 0.08f, turnSpeed = 0.02f;
+    Orientation state = STRAIGHT;
 
-	while (window.isOpen())
-	{
-		sf::Event evt;
-		while (window.pollEvent(evt))
-		{
-			switch (evt.type)
-			{
-			case sf::Event::Closed:
-				window.close();
-				break;
-			}
-		}
-		bool up = 0, down = 0, left = 0, right = 0;
-		//float rotation = car.getRotation();
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))left = 1;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) right = 1;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) up = 1;
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)) down = 1;
+    // --- Main loop ---
+    while (window.isOpen()) {
+        sf::Event evt;
+        while (window.pollEvent(evt)) {
+            if (evt.type == sf::Event::Closed || (evt.type == sf::Event::KeyPressed && evt.key.code == sf::Keyboard::Q))
+                window.close();
+        }
 
-		//movement
-		if (up && speed < maxSpeed)
-		{
-			if (speed < 0) speed += deacc;
-			else speed += acc;
-		}
-		if (down && speed > -maxSpeed)
-		{
-			if (speed > 0) speed -= deacc;
-			else speed -= acc;
-		}
-		if (!up && !down)
-		{
-			if (speed - deacc > 0) speed -= deacc;
-			else if (speed + deacc < 0) speed += deacc;
-			else speed = 0;
-		}
+        // --- Input ---
+        bool up = sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
+        bool down = sf::Keyboard::isKeyPressed(sf::Keyboard::Down);
+        bool left = sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
+        bool right = sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
 
+        if (up && speed < maxSpeed) speed += (speed < 0) ? deacc : acc;
+        if (down && speed > -maxSpeed) speed -= (speed > 0) ? deacc : acc;
+        if (!up && !down) {
+            speed += (speed > 0) ? -deacc : (speed < 0) ? deacc : 0;
+            if (std::abs(speed) < 0.01f) speed = 0;
+        }
 
-		if (right && speed != 0)
-		{
-			angle += turnSpeed * speed / maxSpeed;
-			state = RIGHT;
-		}
-<<<<<<< HEAD
+        if (left && speed != 0) {
+            angle -= turnSpeed * (speed / maxSpeed);
+            state = LEFT;
+        } else if (right && speed != 0) {
+            angle += turnSpeed * (speed / maxSpeed);
+            state = RIGHT;
+        } else {
+            state = STRAIGHT;
+        }
 
-=======
-		else if (right != 0)
-		{
-			state = RIGHT;
-		}
->>>>>>> 2b2c0b42e0dc66fb83924f4d229d4e3de2e4eeae
-		else if (left && speed != 0)
-		{
-			angle -= turnSpeed * speed / maxSpeed;
-			state = LEFT;
-		}
-		else if (left != 0)
-		{
-			state = LEFT;
-		}
-		else
-			state = UP_DOWN;
+        // --- Move car ---
+        sx = x;
+        sy = y;
+        x += sin(angle) * speed;
+        y -= cos(angle) * speed;
 
+        // Clamp to screen
+        float halfCarW = car.getSize().x / 2.0f;
+        float halfCarH = car.getSize().y / 2.0f;
 
-		x += sin(angle) * speed;
-		y -= cos(angle) * speed;
-<<<<<<< HEAD
-		if (x < 0)
-			x = 0;
-		if (x > window.getSize().x)
-			x = window.getSize().x;
-		if (y < 0)
-			y = 0;
-		if (y > window.getSize().y)
-			y = window.getSize().y;
-		//mouse input
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
-		{
-			sf::Vector2i mousepos = sf::Mouse::getPosition(window);
-			x = (float)mousepos.x;
-			y = (float)mousepos.y;
-			angle = 0.0;
-=======
+        x = std::clamp(x, halfCarW, static_cast<float>(window.getSize().x) - halfCarW);
+        y = std::clamp(y, halfCarH, static_cast<float>(window.getSize().y) - halfCarH);
 
-		
+        // --- Collision detection ---
+        bool collided = false;
+        for (int row = 0; row < max_rows && !collided; ++row) {
+            for (int col = 0; col < max_cols && !collided; ++col) {
+                if (hexgrid[row][col] != OBSTACLE) continue;
 
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-		{
-			sf::Vector2i mousepos = sf::Mouse::getPosition(window);
-			ox = (float)mousepos.x;
-			oy = (float)mousepos.y;
-			oi = (int)ox / 104;
-			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 0;
-		}
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::X))
-		{
-			sf::Vector2i mousepos = sf::Mouse::getPosition(window);
-			ox = (float)mousepos.x;
-			oy = (float)mousepos.y;
-			oi = (int)ox / 104;
-			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 3;
->>>>>>> 2b2c0b42e0dc66fb83924f4d229d4e3de2e4eeae
-		}
-		else if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-		{
-			sf::Vector2i mousepos = sf::Mouse::getPosition(window);
-			ox = (int)mousepos.x;
-			oy = (int)mousepos.y;
-			x = ox;
-			y = oy;
-			sx = ox;
-			sy = oy;
-			oi = (int)ox / 104;
-			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 1;
-		}
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-		{
-			sf::Vector2i mousepos = sf::Mouse::getPosition(window);
-			ox = (float)mousepos.x;
-			oy = (float)mousepos.y;
-			oi = (int)ox / 104;
-			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 3;
-		}
-		else if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-		{
-			sf::Vector2i mousepos = sf::Mouse::getPosition(window);
-			ox = (float)mousepos.x;
-			oy = (float)mousepos.y;
-			oi = (int)ox / 104;
-			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 2;
-		}
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-		{
-			sf::Vector2i mousepos = sf::Mouse::getPosition(window);
-			ox = (float)mousepos.x;
-			oy = (float)mousepos.y;
-			oi = (int)ox / 104;
-			oj = (int)oy / 84;
-			hexgrid[oi][oj] = 3;
-		}
-			
-		//check collision
-		cx = (int)x / 104;
-		cy = (int)y / 84;
-		if (hexgrid[cx][cy] == 0)
-		{
-			x = sx;
-			y = sy;
-		}
-		else 
-			std::cout << "no collision" << std::endl;
-		    std::cout << sx <<"  " <<sy<< std::endl;
+                float xOffset = (row % 2 == 0) ? TILE_WIDTH / 2.0f : 0.0f;
+                sf::Vector2f hexCenter(
+                    col * TILE_WIDTH + xOffset + TILE_WIDTH / 2.0f,
+                    row * TILE_HEIGHT * 0.75f + TILE_HEIGHT / 2.0f
+                );
 
+                if (pointInHexagon(sf::Vector2f(x, y), hexCenter, TILE_WIDTH / 2.0f)) {
+                    collided = true;
+                    break;
+                }
+            }
+        }
 
-<<<<<<< HEAD
-		//for grid
-		sf::RectangleShape gridshape(sf::Vector2f(50.f, 70.f));
-		gridshape.setFillColor(sf::Color::Blue);
-		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-		{
-			sf::Vector2i mousepress = sf::Mouse::getPosition(window);
-			int m = (int)mousepress.x;
-			int n = (int)mousepress.y;
+        if (collided) {
+            x = sx;
+            y = sy;
+            speed = 0;
+        }
 
-			i = int(m / 50);
-			j = int(n / 70);
+        // --- Mouse interaction ---
+        static bool lastMousePressed = false;
+        bool currentMousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
 
-		}
-		gridshape.setPosition(i * 50, j * 70);
+        if (currentMousePressed && !lastMousePressed) { // Only trigger on mouse press, not hold
+            sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+            sf::Vector2f worldPos = window.mapPixelToCoords(mousePos);
 
+            for (int row = 0; row < max_rows; ++row) {
+                for (int col = 0; col < max_cols; ++col) {
+                    float xOffset = (row % 2 == 0) ? TILE_WIDTH / 2.0f : 0.0f;
+                    sf::Vector2f hexCenter(
+                        col * TILE_WIDTH + xOffset + TILE_WIDTH / 2.0f,
+                        row * TILE_HEIGHT * 0.75f + TILE_HEIGHT / 2.0f
+                    );
 
-		//draw car
-		window.clear(sf::Color(210, 240, 235));
-		car.setTextureRect(sf::IntRect(texturesize.x * 0, texturesize.y * state, texturesize.x, texturesize.y));
-		car.setPosition(x, y);
-		car.setRotation(angle * 180 / (float)3.141592);
+                    if (pointInHexagon(worldPos, hexCenter, TILE_WIDTH / 2.0f)) {
+                        // --- Check if car is inside this hex ---
+                        if (pointInHexagon(sf::Vector2f(x, y), hexCenter, TILE_WIDTH / 2.0f)) {
+                            std::cout << "Cannot modify hexagon under the car in (" << x << ", " << y << ")!\n";
+                            continue;
+                        }
+                        if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
+                            hexgrid[row][col] = TileType::EMPTY;
+                        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+                            hexgrid[row][col] = TileType::START;
+                        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+                            hexgrid[row][col] = TileType::STOP;
+                        else
+                            hexgrid[row][col] = TileType::OBSTACLE;
+                        break;
+                    }
+                }
+            }
+        }
+        lastMousePressed = currentMousePressed;
 
-		window.draw(gridshape);
+        // --- Rendering ---
+        window.clear(sf::Color(150, 150, 150));
+        for (int row = 0; row < max_rows; row++) {
+            for (int col = 0; col < max_cols; col++) {
+                int tileType = hexgrid[row][col];
+				// Only render non-empty tiles or render all tiles with different colors
+                tile.setTextureRect(sf::IntRect(150 * tileType, 0, 150, 172));
 
-		window.draw(rectangle);
-		window.draw(rectangle1);
-		window.draw(rectangle2);
-		window.draw(rectangle3);
-		window.draw(rectangle4);
-		window.draw(rectangle5);
-		window.draw(rectangle6);
-		window.draw(rectangle7);
-		window.draw(car);
-		window.display();
-=======
-		//render
-	window.clear(sf::Color(150,150,150));
-	car.setTextureRect(sf::IntRect(texturesize.x *0, texturesize.y * state, texturesize.x, texturesize.y));
-	car.setPosition(x, y);
-	car.setRotation(angle *180 / (float)3.1415);
-		for (int i = 0; i <maxrows; i++)
-			for (int j = 0; j < maxcolms; j++)
-			{
-				if (j % 2 == 0) {
-					tile.setTextureRect(sf::IntRect(150 * hexgrid[i][j], 172 * 0, 150, 172));
-					tile.setPosition(i * 104, j * 84);
-				}
-				if (j % 2 != 0) {
-					tile.setTextureRect(sf::IntRect(150 * hexgrid[i][j], 172 * 0, 150, 172));
-					tile.setPosition((i+0.5) * 104, j * 84);
-				}
+                float xOffset = (row % 2 == 0) ? TILE_WIDTH / 2.0f : 0.0f;
+                tile.setPosition(
+                    col * TILE_WIDTH + xOffset + TILE_WIDTH / 2.0f, 
+                    row * TILE_HEIGHT * 0.75f + TILE_HEIGHT / 2.0f // Fixed: consistent with collision detection
+                );
+                window.draw(tile);
+            }
+        }
 
-				window.draw(tile);
-			}
-	window.draw(car);
-	window.display();
->>>>>>> 2b2c0b42e0dc66fb83924f4d229d4e3de2e4eeae
-	}
+        // Draw car on top
+        car.setTextureRect(sf::IntRect(0, carTextureSize.y * state, carTextureSize.x, carTextureSize.y));
+        car.setPosition(x, y);
+        car.setRotation(angle * 180.0f / PI);
+        window.draw(car);
+        window.display();
+    }
 
-	return 0;
+    return 0;
 }
