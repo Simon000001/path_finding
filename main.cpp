@@ -2,6 +2,10 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <queue>
+#include <unordered_map>
+#include <algorithm>
+#include <set>
 
 // --- Enums ---
 enum Orientation {
@@ -14,7 +18,29 @@ enum TileType {
     OBSTACLE = 0,
     START,
     STOP,
-    EMPTY
+    EMPTY,
+    PATH
+};
+
+// --- Hexagon Grid Helpers ---
+struct HexNode {
+    int r, c;
+    bool operator==(const HexNode& other) const {
+        return r == other.r && c == other.c;
+    }
+    bool operator!=(const HexNode& other) const {
+        return !(*this == other);
+    }
+    bool operator<(const HexNode& other) const {
+        return r < other.r || (r == other.r && c < other.c);
+    }
+};
+
+// Hash function for HexNode to be used in unordered_map
+struct HexNodeHash {
+    std::size_t operator()(const HexNode& node) const {
+        return std::hash<int>()(node.r) ^ (std::hash<int>()(node.c) << 1);
+    }
 };
 
 // --- Check point inside hexagon ---
@@ -40,6 +66,80 @@ bool pointInHexagon(sf::Vector2f point, sf::Vector2f hexCenter, float radius) {
     return (crossings % 2 == 1);
 }
 
+// --- A* Pathfinding ---
+std::vector<HexNode> getNeighbors(HexNode node, int max_rows, int max_cols) {
+    std::vector<HexNode> neighbors;
+    int r = node.r;
+    int c = node.c;
+
+    // Offsets for "even-r" layout (even rows shifted right) based on drawing logic
+    // row 0 (even): xOffset = TILE_WIDTH / 2.0f
+    // row 1 (odd):  xOffset = 0.0f
+    
+    int even_row_offsets[6][2] = { {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, 0}, {1, 1} };
+    int odd_row_offsets[6][2] =  { {-1, -1}, {-1, 0}, {0, -1}, {0, 1}, {1, -1}, {1, 0} };
+
+    auto& current_offsets = (r % 2 == 0) ? even_row_offsets : odd_row_offsets;
+
+    for (int i = 0; i < 6; ++i) {
+        int nr = r + current_offsets[i][0];
+        int nc = c + current_offsets[i][1];
+
+        if (nr >= 0 && nr < max_rows && nc >= 0 && nc < max_cols) {
+            neighbors.push_back({nr, nc});
+        }
+    }
+    return neighbors;
+}
+
+float heuristic(HexNode a, HexNode b) {
+    // Euclidean distance as a simple admissible heuristic
+    // Note: This is on grid coordinates, which is an approximation.
+    // Ideally we'd convert to world coordinates or cube coordinates.
+    // But for this grid size, it should be sufficient.
+    return std::sqrt(std::pow(a.r - b.r, 2) + std::pow(a.c - b.c, 2));
+}
+
+void aStar(std::vector<std::vector<int>>& grid, HexNode start, HexNode stop, int max_rows, int max_cols) {
+    std::priority_queue<std::pair<float, HexNode>, std::vector<std::pair<float, HexNode>>, std::greater<std::pair<float, HexNode>>> openSet;
+    std::unordered_map<HexNode, HexNode, HexNodeHash> cameFrom;
+    std::unordered_map<HexNode, float, HexNodeHash> gScore;
+    
+    openSet.push({0.0f, start});
+    gScore[start] = 0.0f;
+
+    while (!openSet.empty()) {
+        HexNode current = openSet.top().second;
+        openSet.pop();
+
+        if (current == stop) {
+            // Reconstruct path
+            HexNode temp = stop;
+            while (temp != start) {
+                if (grid[temp.r][temp.c] != TileType::START && grid[temp.r][temp.c] != TileType::STOP) {
+                    grid[temp.r][temp.c] = TileType::PATH;
+                }
+                if (cameFrom.find(temp) == cameFrom.end()) break; // Should not happen if path exists
+                temp = cameFrom[temp];
+            }
+            return;
+        }
+
+        for (HexNode neighbor : getNeighbors(current, max_rows, max_cols)) {
+            if (grid[neighbor.r][neighbor.c] == TileType::OBSTACLE) continue;
+
+            float tentative_gScore = gScore[current] + 1.0f; // Cost 1 for neighbor
+            if (gScore.find(neighbor) == gScore.end() || tentative_gScore < gScore[neighbor]) {
+                cameFrom[neighbor] = current;
+                gScore[neighbor] = tentative_gScore;
+                float fScore = tentative_gScore + heuristic(neighbor, stop);
+                openSet.push({fScore, neighbor});
+            }
+        }
+    }
+    std::cout << "No path found!\n";
+}
+
 int main() {
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
@@ -58,13 +158,19 @@ int main() {
     std::vector<std::vector<int>> hexgrid(max_rows, std::vector<int>(max_cols, TileType::EMPTY));
 
     // --- Set START and STOP tiles within visible range ---
+    HexNode startNode = {0, 0};
+    HexNode stopNode = {0, 0};
+
     if (max_rows > 0 && max_cols > 0) {
         hexgrid[0][0] = TileType::START;
+        startNode = {0, 0};
         if (max_rows > 1 && max_cols > 1) {
             hexgrid[max_rows - 1][max_cols - 1] = TileType::STOP;
+            stopNode = {max_rows - 1, max_cols - 1};
         } else {
             // If grid is too small, place STOP at a different position
             hexgrid[std::max(0, max_rows - 1)][std::max(0, max_cols - 1)] = TileType::STOP;
+            stopNode = {std::max(0, max_rows - 1), std::max(0, max_cols - 1)};
         }
     }
 
@@ -105,6 +211,19 @@ int main() {
         while (window.pollEvent(evt)) {
             if (evt.type == sf::Event::Closed || (evt.type == sf::Event::KeyPressed && evt.key.code == sf::Keyboard::Q))
                 window.close();
+            
+            // Trigger Pathfinding
+            if (evt.type == sf::Event::KeyPressed && evt.key.code == sf::Keyboard::Space) {
+                // Clear previous path
+                for(int r=0; r<max_rows; ++r) {
+                    for(int c=0; c<max_cols; ++c) {
+                        if(hexgrid[r][c] == TileType::PATH) hexgrid[r][c] = TileType::EMPTY;
+                        if(hexgrid[r][c] == TileType::START) startNode = {r, c};
+                        if(hexgrid[r][c] == TileType::STOP) stopNode = {r, c};
+                    }
+                }
+                aStar(hexgrid, startNode, stopNode, max_rows, max_cols);
+            }
         }
 
         // --- Input ---
@@ -210,13 +329,20 @@ int main() {
         for (int row = 0; row < max_rows; row++) {
             for (int col = 0; col < max_cols; col++) {
                 int tileType = hexgrid[row][col];
-				// Only render non-empty tiles or render all tiles with different colors
-                tile.setTextureRect(sf::IntRect(150 * tileType, 0, 150, 172));
+                
+                // Handle PATH rendering
+                if (tileType == TileType::PATH) {
+                    tile.setTextureRect(sf::IntRect(150 * TileType::EMPTY, 0, 150, 172));
+                    tile.setFillColor(sf::Color(100, 255, 100)); // Light green for path
+                } else {
+                    tile.setTextureRect(sf::IntRect(150 * tileType, 0, 150, 172));
+                    tile.setFillColor(sf::Color::White);
+                }
 
                 float xOffset = (row % 2 == 0) ? TILE_WIDTH / 2.0f : 0.0f;
                 tile.setPosition(
                     col * TILE_WIDTH + xOffset + TILE_WIDTH / 2.0f, 
-                    row * TILE_HEIGHT * 0.75f + TILE_HEIGHT / 2.0f // Fixed: consistent with collision detection
+                    row * TILE_HEIGHT * 0.75f + TILE_HEIGHT / 2.0f
                 );
                 window.draw(tile);
             }
