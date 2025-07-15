@@ -38,6 +38,16 @@ g++ main.cpp -o main -lsfml-graphics -lsfml-window -lsfml-system
 * Subash Mainali
 
 ---
+### Usage
+
+*   **Arrow Keys**: Move the car manually.
+*   **Left Click**: Toggle obstacles on the grid.
+*   **Space**: Calculate and visualize the shortest path using A* algorithm.
+*   **S**: Set Start node (while hovering).
+*   **E**: Set End node (while hovering).
+*   **X**: Clear tile (while hovering).
+*   **Q**: Quit.
+
 ### References
 
 * [SFML: Getting Started on Linux](https://www.sfml-dev.org/tutorials/3.0/getting-started/linux/)

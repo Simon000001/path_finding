@@ -93,11 +93,22 @@ std::vector<HexNode> getNeighbors(HexNode node, int max_rows, int max_cols) {
 }
 
 float heuristic(HexNode a, HexNode b) {
-    // Euclidean distance as a simple admissible heuristic
-    // Note: This is on grid coordinates, which is an approximation.
-    // Ideally we'd convert to world coordinates or cube coordinates.
-    // But for this grid size, it should be sufficient.
-    return std::sqrt(std::pow(a.r - b.r, 2) + std::pow(a.c - b.c, 2));
+    // Convert to Axial coordinates (q, r) for "Even-R" layout
+    // q = col - (row + (row&1)) / 2
+    // r = row
+    
+    auto get_q = [](int r, int c) {
+        return c - (r + (r & 1)) / 2;
+    };
+
+    int aq = get_q(a.r, a.c);
+    int ar = a.r;
+    int bq = get_q(b.r, b.c);
+    int br = b.r;
+
+    // Hex distance = (|dq| + |dr| + |dq + dr|) / 2
+    // equivalent to (|q1-q2| + |r1-r2| + |s1-s2|) / 2 where s = -q-r
+    return (std::abs(aq - bq) + std::abs(ar - br) + std::abs((aq + ar) - (bq + br))) / 2.0f;
 }
 
 void aStar(std::vector<std::vector<int>>& grid, HexNode start, HexNode stop, int max_rows, int max_cols) {
